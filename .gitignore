@@ -1,0 +1,12 @@
+# MSKLC-generated packages and intermediate files belong in GitHub Releases.
+*.dll
+*.msi
+*.exe
+*.C
+*.DEF
+*.H
+*.RC
+amd64/
+i386/
+ia64/
+wow64/
