@@ -25,6 +25,19 @@ Test both sequences:
 
 Run `setup.exe` again and choose the removal option to uninstall it.
 
+### Kanata on Windows
+
+If AltGr dead keys produce literal prefixes such as `^c` or break normal Ctrl
+shortcuts while Kanata is running, add this to Kanata's `defcfg`:
+
+```lisp
+process-unmapped-keys yes
+windows-altgr cancel-lctl-press
+```
+
+Windows synthesizes a Left Ctrl press for AltGr. This setting prevents Kanata
+from forwarding that synthetic press as a real, potentially stuck Ctrl key.
+
 ## modifying and building the layout
 
 - x64 Windows 11
