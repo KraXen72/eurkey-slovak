@@ -7,9 +7,8 @@ This fork makes one small change to [rpnfan's modern EurKEY 1.3r Windows rebuild
 
 The existing caron combinations are unchanged, so caron + `l`/`L` still produces `ľ`/`Ľ`.
 
-The layout name, DLL name and layout ID are different from upstream. This is metadata, not a keymap change, and lets the patched layout coexist with stock EurKEY and older custom builds without Windows loading the wrong DLL.
-
-This MSKLC build works on x64 Windows 11, but it does not preserve the upstream KbdEdit installer's ARM64 support. MSKLC 1.4 only generates x86, AMD64/x64, IA64 and WOW64 outputs. An ARM64 release would need to be rebuilt separately using a modern Windows driver toolchain or KbdEdit.
+The project has a unique name and ID so it can coexist with stock EurKEY and
+older custom builds. The MSKLC package supports x86 and x64 Windows, not ARM64.
 
 ## installing
 
@@ -19,7 +18,7 @@ This MSKLC build works on x64 Windows 11, but it does not preserve the upstream 
 4. Sign out and back in, or restart Windows.
 5. Select **EurKEY 1.3r - Slovak l-acute** using `Win+Space`.
 
-After installing, test both sequences:
+Test both sequences:
 
 - `AltGr + '`, then `l` should type `ĺ`
 - `Shift + AltGr + 6`, then `l` should type `ľ`
@@ -28,88 +27,29 @@ Run `setup.exe` again and choose the removal option to uninstall it.
 
 ## modifying and building the layout
 
-### requirements
-
 - x64 Windows 11
 - [.NET Framework 3.5](https://learn.microsoft.com/en-us/dotnet/framework/install/dotnet-35-windows), enabled through **Turn Windows features on or off**
 - [Microsoft Keyboard Layout Creator 1.4](https://www.microsoft.com/en-us/download/details.aspx?id=102134)
 
-The MSKLC download first extracts `MSKLC.msi` and `setup.exe`; it does not install the editor yet. Run that extracted `setup.exe` as administrator and complete the second installer.
-
-### source
-
-`eursk13.klc` is based on the `eurkey13.klc` source shipped in rpnfan's EurKEY 1.3r release.
-
-The relevant source change is in the `DEADKEY 00b4` table (`00b4` is the acute accent):
+`eursk13.klc` is based on the source shipped in upstream's EurKEY 1.3r release.
+Its only keymap change is in the acute-accent dead-key table:
 
 ```text
 006c    013a    // l -> ĺ
 004c    0139    // L -> Ĺ
 ```
 
-Do not change the corresponding entries under `DEADKEY 02c7`; that is the caron table containing `ľ` and `Ľ`.
+Leave the caron table unchanged; it already contains `ľ` and `Ľ`.
 
-The project metadata uses:
-
-```text
-KBD       EurSK13    "EurKEY 1.3r - Slovak l-acute"
-LOCALEID  "a0010409"
-```
-
-`EurSK13` is deliberately unique and within MSKLC's eight-character project-name limit. The custom locale ID avoids collisions with upstream's `a0000409` layout.
-
-### building the official installer
-
-1. Start **Microsoft Keyboard Layout Creator 1.4**.
-2. Select **File > Load Source File** and open `eursk13.klc`.
-3. Check **Project > Properties**. The name should be `EurSK13` and the description should be `EurKEY 1.3r - Slovak l-acute`.
-4. Optionally use **Project > Test Keyboard Layout** to check `ĺ` and `ľ` before building.
-5. Select **Project > Build DLL and Setup Package**.
-6. MSKLC reports an inherited warning because `ß` and `ẞ` are not recognized as a case pair. Accept the warning; there should be no errors.
-7. Pick an output directory outside the repository, for example `Documents\eursk13`.
+1. Start **Microsoft Keyboard Layout Creator 1.4** and load `eursk13.klc`.
+2. Select **Project > Build DLL and Setup Package**.
+3. Accept the inherited `ß`/`ẞ` casing warning; there should be no errors.
+4. Choose an output directory outside the repository, such as `Documents\eursk13`.
 
 The output contains `setup.exe`, architecture-specific MSI packages and DLL directories. These are generated release artifacts: keep them out of Git and attach a ZIP containing the complete output directory to a GitHub release instead.
 
-MSKLC's underlying compiler does have a CLI:
-
-```powershell
-$source = (Resolve-Path .\eursk13.klc).Path
-$cliSource = Join-Path $env:TEMP 'eursk13-cli.klc'
-$text = [IO.File]::ReadAllText($source, [Text.Encoding]::UTF8)
-[IO.File]::WriteAllText($cliSource, $text, [Text.Encoding]::Unicode)
-& 'C:\Program Files (x86)\Microsoft Keyboard Layout Creator 1.4\bin\i386\kbdutool.exe' -wum $cliSource
-```
-
-The repository keeps the KLC as readable UTF-8, while `kbdutool.exe` expects UTF-16 LE input; the temporary conversion does not change its contents. `-u` enables Unicode and `-m` targets AMD64/x64. This builds a DLL, but it does not produce MSKLC's standard MSI/setup package; use the GUI build command for distributable installers.
-
-### verifying that only the intended keys changed
-
-Convert both KLC files to temporary UTF-16 LE copies as above, then generate their C tables:
-
-```powershell
-function Convert-KlcForKbdTool($source, $destination) {
-    $text = [IO.File]::ReadAllText((Resolve-Path $source), [Text.Encoding]::UTF8)
-    [IO.File]::WriteAllText($destination, $text, [Text.Encoding]::Unicode)
-}
-
-$upstreamCliSource = Join-Path $env:TEMP 'eurkey13-upstream.klc'
-$patchedCliSource = Join-Path $env:TEMP 'eursk13-patched.klc'
-Convert-KlcForKbdTool .\eurkey13.klc $upstreamCliSource
-Convert-KlcForKbdTool .\eursk13.klc $patchedCliSource
-
-$kbdTool = 'C:\Program Files (x86)\Microsoft Keyboard Layout Creator 1.4\bin\i386\kbdutool.exe'
-& $kbdTool -wus $upstreamCliSource
-& $kbdTool -wus $patchedCliSource
-```
-
-Diff the generated `.C` files. Apart from the project/header name, the only keyboard-table differences should be:
-
-```diff
-- DEADTRANS( L'l', 0x00b4, 0x0142, 0x0000),
-+ DEADTRANS( L'l', 0x00b4, 0x013a, 0x0000),
-- DEADTRANS( L'L', 0x00b4, 0x0141, 0x0000),
-+ DEADTRANS( L'L', 0x00b4, 0x0139, 0x0000),
-```
+Keep generated DLLs, MSIs and `setup.exe` out of Git. Zip the complete build
+directory and attach it to a GitHub release.
 
 ---
 
