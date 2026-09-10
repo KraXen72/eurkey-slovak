@@ -68,7 +68,7 @@ directory and attach it to a GitHub release.
 
 ## Original README
 
-<img width="1448" height="518" alt="image" src="https://github.com/user-attachments/assets/202d748e-9d21-4202-8143-b22be31783b0" />
+<img width="1448" height="518" alt="image" src="./eurkey_screenshot.png" />
 
 # EurKey (Windows Installer Rebuild)
 
